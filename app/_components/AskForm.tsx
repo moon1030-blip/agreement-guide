@@ -20,9 +20,14 @@ const EXAMPLE_QUESTIONS = [
 const AGREEMENT_CONFIRM_MESSAGE =
   "질문에 '제○조'나 '별첨'이 들어 있어요.\n협약 원문을 붙여넣은 것이 아닌지 확인하세요.\n\n협약 원문이 아니라면 [확인]을 눌러 보내세요.";
 
+// Design Ref: §8 — 10초가 지나면 지연 안내, 30초가 지나면 요청을 멈춘다.
+const SLOW_NOTICE_MS = 10_000;
+const TIMEOUT_MS = 30_000;
+
 export default function AskForm() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AnswerState>({ kind: "idle" });
+  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const loading = answer.kind === "loading";
 
   // 입력 중에 바로 검사해, 개인정보로 보이는 숫자가 있으면 보내기 전에 막는다.
@@ -37,19 +42,38 @@ export default function AskForm() {
       return;
     }
 
-    setAnswer({ kind: "loading" });
+    await send(validation.question);
+  }
+
+  async function send(text: string) {
+    setLastQuestion(text);
+    setAnswer({ kind: "loading", slow: false });
+
+    const controller = new AbortController();
+    const slowTimer = setTimeout(() => {
+      setAnswer((prev) => (prev.kind === "loading" ? { kind: "loading", slow: true } : prev));
+    }, SLOW_NOTICE_MS);
+    const timeoutTimer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: validation.question }),
+        body: JSON.stringify({ question: text }),
+        signal: controller.signal,
       });
       const response = (await res.json()) as AskResponse;
       setAnswer({ kind: "done", response });
     } catch {
-      // 지연 안내·다시 시도 버튼은 PLAN 16번에서 붙인다.
-      setAnswer({ kind: "failed" });
+      setAnswer({ kind: "failed", timedOut: controller.signal.aborted });
+    } finally {
+      clearTimeout(slowTimer);
+      clearTimeout(timeoutTimer);
     }
+  }
+
+  function handleRetry() {
+    if (lastQuestion && !loading) void send(lastQuestion);
   }
 
   return (
@@ -100,7 +124,7 @@ export default function AskForm() {
           </button>
         </div>
       </form>
-      <AnswerView state={answer} />
+      <AnswerView state={answer} onRetry={handleRetry} />
     </>
   );
 }
