@@ -1,6 +1,7 @@
 // Design Ref: §5.2·§7 — 질문을 받는 서버 API. 지금은 고정 답변만 돌려준다.
-// 하루 제한(PLAN 17번), 관련 내용 찾기·AI 답변(PLAN 11~14번)은 이후에 붙인다.
+// 관련 내용 찾기·AI 답변(PLAN 12~14번)은 이후에 붙인다.
 import type { AnswerResponse, ErrorResponse } from "@/lib/askResponse";
+import { tryConsumeDailyQuestion } from "@/lib/dailyLimit";
 import { validateQuestion } from "@/lib/validate";
 
 function errorResponse(status: number, body: ErrorResponse) {
@@ -27,6 +28,15 @@ export async function POST(request: Request) {
       status: "error",
       code: validation.code,
       message: validation.message,
+    });
+  }
+
+  // Plan SC: AI 사용 요금을 관리하기 위해 앱 전체 질문을 하루 100건으로 제한한다.
+  if (!tryConsumeDailyQuestion()) {
+    return errorResponse(429, {
+      status: "error",
+      code: "DAILY_LIMIT",
+      message: "오늘 질문 가능 횟수를 모두 사용했어요. 내일 다시 이용해 주세요.",
     });
   }
 
