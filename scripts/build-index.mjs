@@ -5,6 +5,7 @@
 // 항목마다 지문을 두 개 만든다.
 //  - full: 제목 + 본문 (내용으로 찾기)
 //  - title: 제목만 (질문과 질문을 맞대어 찾기)
+//  - lead: 본문 첫 줄(120자까지) — 여러 이야기가 섞인 긴 항목에서 첫 문장이 말하는 핵심(예: "신청기간을 26년말까지 연장")이 희석되지 않게 한다
 // 검색할 때는 둘 중 높은 점수를 쓴다. 보정 결과 이 방식이 "깎아→감면", "독촉→추심"처럼
 // 표현이 다른 질문도 더 잘 찾았다. 문단별 지문도 시험했지만 오히려 순위가 흐트러져 쓰지 않는다.
 // 같은 단어가 본문에만 있는 경우는 lib/retrieve.ts의 글자 겹침 점수가 맡는다.
@@ -44,13 +45,17 @@ async function embed(texts) {
   return out;
 }
 
+// 본문 첫 줄에서 앞의 기호를 떼고 120자까지.
+const leadOf = (text) => text.split("\n")[0].replace(/^[\s✓□○◦●·•\-–※*➊-➓①-⑳▲▶▷]+/, "").slice(0, 120);
+
 const vectors = [];
 try {
-  const [full, title] = await Promise.all([
+  const [full, title, lead] = await Promise.all([
     embed(chunks.map((chunk) => `${chunk.item}\n${chunk.text}`)),
     embed(chunks.map((chunk) => chunk.item)),
+    embed(chunks.map((chunk) => leadOf(chunk.text))),
   ]);
-  chunks.forEach((chunk, i) => vectors.push({ id: chunk.id, full: full[i], title: title[i] }));
+  chunks.forEach((chunk, i) => vectors.push({ id: chunk.id, full: full[i], title: title[i], lead: lead[i] }));
 } catch (error) {
   const status = error?.status ? ` (HTTP ${error.status})` : "";
   console.error(`❌ 임베딩 생성 실패${status}: ${error?.message ?? error}`);

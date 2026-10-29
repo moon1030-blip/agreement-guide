@@ -162,7 +162,7 @@ function shortTitle(title, max = 40) {
 // 항목 제목에 붙이는 첫 문장 조각. 같은 소제목이 여러 조각으로 나뉠 때 조각마다 다른 제목이 되게 한다.
 function snippetOf(text) {
   const firstLine = text.split("\n")[0].replace(/^[\s✓□○◦●·•\-–※*➊-➓①-⑳▲▶▷]+/, "");
-  return firstLine.length > 30 ? `${firstLine.slice(0, 29)}…` : firstLine;
+  return firstLine.length > 60 ? `${firstLine.slice(0, 59)}…` : firstLine;
 }
 
 function buildMarkdown(post) {

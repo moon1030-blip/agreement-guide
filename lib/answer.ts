@@ -28,6 +28,10 @@ export const OUT_OF_SCOPE_ANSWER =
 const DOMAIN_TERMS =
   /새출발|채무|채권|대출|연체|상환|감면|차주|조정|신용|소상공인|자영업|폐업|휴업|보증|담보|약정|추심|개인회생|워크아웃|도덕적|해이|협약|신복위|캠코|자산관리공사|이자|원금|금융기관|금융회사/;
 
+// 답변 문장이 "자료에 없다"고 말하는 표현.
+const ABSENCE_CLAIM =
+  /(명시|언급|기재|공개)(되어|돼|되)?\s*(있지|있진|지)\s*(않|아니|못)|(자료|항목|내용)(에서|에는|에)\s*(는\s*)?(찾을 수 없|없습니다|없으며|없어)|공식 자료에 없/;
+
 export function looksLikeDomainQuestion(question: string): boolean {
   return DOMAIN_TERMS.test(question);
 }
@@ -299,6 +303,9 @@ export async function generateAnswer(question: string, related: RelatedChunk[]):
   }
 
   if (!output.has_evidence || !output.fact_in_items || sources.length === 0) return noEvidenceResponse();
+  // "자료에 없다/공개되지 않았다"는 말은 근거가 될 수 없다. 항목을 못 찾았을 뿐인데 없다고 단정하는 답을 막는다
+  // (예: 신청기한이 보도자료에 있는데 "명시되어 있지 않습니다"라고 답한 경우).
+  if (ABSENCE_CLAIM.test([output.headline, ...output.reasons.map((p) => p.text)].join(" "))) return noEvidenceResponse();
   sources.splice(MAX_SOURCES);
 
   // 문장마다 근거 목록 번호(1부터)를 단다. 목록에 없는 번호는 버린다.

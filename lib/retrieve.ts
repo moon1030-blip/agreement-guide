@@ -34,7 +34,9 @@ const publicChunks: Chunk[] = chunks.map((chunk) => ({ ...chunk, origin: "public
 // 후보를 5개로 좁히면, 여러 이야기가 한 항목에 섞여 뜻 점수가 희석된 항목(예: Q5의 "무담보 10년")이
 // 6~7위로 밀려 AI가 아예 보지 못해 틀린 답이 나왔다 (점검 5번, data/eval/report.md).
 export const MAX_CANDIDATES = 10;
-const MAX_BY_MEANING_WITH_KEYWORD = MAX_CANDIDATES - 1;
+// 글자 겹침으로 찾은 항목에 주는 자리 수. 뜻 점수가 거의 평평한 짧은 질문(예: 신청기한)에서는 정답이 글자 겹침으로만 잡히므로 2자리를 둔다.
+const KEYWORD_SLOTS = 2;
+const MAX_BY_MEANING_WITH_KEYWORD = MAX_CANDIDATES - KEYWORD_SLOTS;
 // 뜻 점수가 이보다 낮으면 관련 없는 항목으로 본다 (관련 질문 1위 0.32 이상, 날씨·점심 0.25 미만).
 export const MIN_SCORE = 0.25;
 // 글자 겹침 점수가 이 이상이어야 다섯 번째 자리에 넣는다 (드문 단어 조각 2개 정도가 겹친 수준).
@@ -90,23 +92,39 @@ export function chunkSimilarity(idA: string, idB: string): number | null {
   return a && b ? cosine(a, b) : null;
 }
 
+// 자료에서 같은 뜻으로 쓰이는데 글자가 다른 말을 질문 뒤에 덧붙여 찾는다 (뜻 점수와 글자 겹침 점수 모두).
+// 예: 질문은 "신청기한"인데 보도자료는 "신청기간 … 까지 신청 가능"이라고 써서 정답 항목을 못 찾았다.
+// 질문 원문은 그대로 두고 찾기용으로만 쓰며, 답변 AI에게는 원문 질문을 넘긴다.
+const SYNONYM_GROUPS: string[][] = [
+  ["기한", "기간", "마감", "언제까지"],
+];
+
+export function expandQuestion(question: string): string {
+  const extra = new Set<string>();
+  for (const group of SYNONYM_GROUPS) {
+    if (!group.some((word) => question.includes(word))) continue;
+    for (const word of group) if (!question.includes(word)) extra.add(word);
+  }
+  return extra.size > 0 ? `${question} (${[...extra].join(" ")})` : question;
+}
+
 // 질문의 뜻 지문을 만든다. 공개 자료 찾기와 올린 자료 찾기가 이 값을 함께 쓴다.
 export async function embedQuestion(question: string): Promise<number[]> {
   const res = await getOpenAI().embeddings.create({
     model: index.model,
     dimensions: index.dimensions,
-    input: question,
+    input: expandQuestion(question),
   });
   return res.data[0].embedding;
 }
 
 export function findRelatedByVector(question: string, q: number[]): RelatedChunk[] {
-  const questionGrams = bigrams(question);
+  const questionGrams = bigrams(expandQuestion(question));
 
   const byMeaning = index.vectors
-    .map(({ id, full, title }) => ({
+    .map(({ id, full, title, lead }) => ({
       chunk: chunkById.get(id),
-      score: Math.max(cosine(q, full), cosine(q, title)),
+      score: Math.max(cosine(q, full), cosine(q, title), cosine(q, lead)),
     }))
     .filter((r): r is RelatedChunk => r.chunk !== undefined && r.score >= MIN_SCORE)
     .sort((a, b) => b.score - a.score);
@@ -117,9 +135,13 @@ export function findRelatedByVector(question: string, q: number[]): RelatedChunk
     .filter((chunk) => !taken.has(chunk.id))
     .map((chunk) => ({ chunk, score: keywordScore(questionGrams, chunk.id) }))
     .filter((r) => r.score >= MIN_KEYWORD_SCORE)
-    .sort((a, b) => b.score - a.score)[0];
+    .sort((a, b) => b.score - a.score)
+    .slice(0, KEYWORD_SLOTS);
 
-  const base = byKeyword ? [...topByMeaning, byKeyword] : byMeaning.slice(0, MAX_CANDIDATES);
+  const base =
+    byKeyword.length > 0
+      ? [...topByMeaning, ...byKeyword, ...byMeaning.slice(MAX_BY_MEANING_WITH_KEYWORD).slice(0, KEYWORD_SLOTS - byKeyword.length)]
+      : byMeaning.slice(0, MAX_CANDIDATES);
   return [...base, ...newerSiblings(base)];
 }
 
