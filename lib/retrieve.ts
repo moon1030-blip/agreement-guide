@@ -81,6 +81,15 @@ function keywordScore(questionGrams: Set<string>, chunkId: string): number {
   return score;
 }
 
+const fullVectorById = new Map(index.vectors.map((entry) => [entry.id, entry.full]));
+
+// 공개 자료 두 항목의 내용이 얼마나 비슷한지(뜻 지문 비교). 지문이 없는 항목(올린 자료)이면 null.
+export function chunkSimilarity(idA: string, idB: string): number | null {
+  const a = fullVectorById.get(idA);
+  const b = fullVectorById.get(idB);
+  return a && b ? cosine(a, b) : null;
+}
+
 // 질문의 뜻 지문을 만든다. 공개 자료 찾기와 올린 자료 찾기가 이 값을 함께 쓴다.
 export async function embedQuestion(question: string): Promise<number[]> {
   const res = await getOpenAI().embeddings.create({
@@ -110,5 +119,29 @@ export function findRelatedByVector(question: string, q: number[]): RelatedChunk
     .filter((r) => r.score >= MIN_KEYWORD_SCORE)
     .sort((a, b) => b.score - a.score)[0];
 
-  return byKeyword ? [...topByMeaning, byKeyword] : byMeaning.slice(0, MAX_CANDIDATES);
+  const base = byKeyword ? [...topByMeaning, byKeyword] : byMeaning.slice(0, MAX_CANDIDATES);
+  return [...base, ...newerSiblings(base)];
+}
+
+// 같은 주제를 다룬 더 최근 자료를 후보에 더한다. 질문과 말이 가장 잘 맞는 자료가 오래된 보도자료여도(예: 2025-03 "지원 대상 확대"),
+// 이후 보도자료가 같은 내용을 다시 바꿨다면(2025-09 "더 확대") AI가 그것을 볼 수 있어야 최신 기준으로 답할 수 있다.
+// (보도자료 15건을 더한 뒤 점검에서 확인한 문제. 점수: 두 항목의 뜻 지문 비교)
+const NEWER_SIBLING_MIN_SIMILARITY = 0.74;
+const MAX_NEWER_SIBLINGS = 4;
+const SIBLING_BASE_COUNT = 5;
+
+function newerSiblings(base: RelatedChunk[]): RelatedChunk[] {
+  const taken = new Set(base.map((r) => r.chunk.id));
+  const found = new Map<string, RelatedChunk>();
+  for (const { chunk } of base.slice(0, SIBLING_BASE_COUNT)) {
+    if (chunk.origin !== "public") continue;
+    for (const other of publicChunks) {
+      if (taken.has(other.id) || other.baseDate <= chunk.baseDate) continue;
+      const score = chunkSimilarity(chunk.id, other.id) ?? 0;
+      if (score < NEWER_SIBLING_MIN_SIMILARITY) continue;
+      const best = found.get(other.id);
+      if (!best || score > best.score) found.set(other.id, { chunk: other, score });
+    }
+  }
+  return [...found.values()].sort((a, b) => b.score - a.score).slice(0, MAX_NEWER_SIBLINGS);
 }

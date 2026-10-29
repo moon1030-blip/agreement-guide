@@ -4,7 +4,7 @@ import "server-only";
 import type { AnswerPoint, AnswerResponse, Source, Verdict } from "./askResponse";
 import { plainAnswer } from "./answerText";
 import { getOpenAI } from "./openai";
-import type { RelatedChunk } from "./retrieve";
+import { chunkSimilarity, type RelatedChunk } from "./retrieve";
 
 // PRD 5번 규칙의 숫자
 const MAX_ANSWER_LENGTH = 500;
@@ -37,7 +37,11 @@ const SYSTEM_PROMPT = `당신은 새출발기금 업무 담당자를 돕는 "협
 
 반드시 지킬 규칙:
 1. 주어진 항목에 적힌 내용만 근거로 씁니다. 항목에 없는 일반 법률 지식, 추측, 다른 제도 정보로 결론을 내리지 않습니다.
+   - 항목에 적혀 있지 않은 내용을 "공개하지 않는다·정해지지 않았다·없다"처럼 부정형으로 단정해 답하지 않습니다. 항목이 그 사실을 다루지 않으면 "답이 없다"는 뜻이므로 has_evidence를 false로 합니다(항목이 "없다·불가"라고 직접 적은 경우만 그렇게 답합니다).
+   - 질문에 나온 기관·제도(예: 신용회복위원회 개인워크아웃)의 값은 그 기관·제도에 대해 적힌 항목에서만 가져오고, 다른 제도의 수치를 옮겨 답하지 않습니다.
    - 항목은 관련도 순이 아니며, 질문과 상관없는 항목도 섞여 있습니다. 모든 항목을 끝까지 읽고 질문에 맞는 것만 씁니다.
+   - 공식 공개 자료 항목은 기준일이 최근인 것부터 나열되어 있습니다. 같은 주제를 다룬 항목이 여럿이고 내용이 서로 다르면(예: 지원 대상 기간·감면율이 보도자료마다 다름), 위쪽(더 최근) 항목의 내용으로 답하고, 이전 자료와 달라진 점은 cautions에 "(기준일 2025-03-27) 자료에서는 ○○이었으나 이후 △△로 바뀌었습니다"처럼 짧게 알립니다. 어느 쪽이 맞는지 판단하기 어려우면 ambiguous를 true로 합니다.
+   - 답을 쓰기 전에 항목들을 기준일 순서대로 훑으며, 질문의 주제(대상 기간·감면율·한도·절차 등)가 더 최근 자료에서 "확대·개편·변경·폐지"되었는지 확인합니다. 변경되었으면 가장 최근 값으로 답하고, 이전 값은 "이전 기준"임을 밝혀 cautions에 넣습니다. 오래된 자료의 값만 보고 답하지 않습니다.
    - 여러 항목에 비슷한 수치나 기간이 있으면, 질문의 조건(무담보/담보, 부실/부실우려, 개인/법인 등)에 정확히 맞는 항목의 값을 먼저 말합니다. 특정 대상에게만 적용되는 예외나 추가 지원은 그 대상을 밝혀서 뒤에 덧붙입니다.
 2. 주어진 항목으로 질문에 답할 수 없으면 has_evidence를 false로 하고, 답을 지어내지 않습니다. 질문이 묻는 구체적인 사실(수치·가격·방법·기관 등)이 항목에 없고 주제만 비슷한 일반 설명뿐이라면, 그 설명으로 headline을 채우지 말고 has_evidence를 false로 합니다. headline은 질문에 직접 답하는 문장이어야 합니다.
    - 먼저 asked_fact에 질문이 알고 싶어 하는 핵심 사실을 짧게 적습니다(예: "채권 매입 가격", "신청 가능 여부", "상환 기간"). fact_in_items는 주어진 항목 중에 그 사실이 직접 적혀 있으면 true입니다. 주제만 비슷하고 그 사실이 없으면 false로 하고, 이때 has_evidence도 false입니다. 질문이 새출발기금과 관계없는 경우도 같습니다(아래 on_topic 참고).
@@ -207,17 +211,37 @@ function isTermMismatch(pair: { a: string; b: string }, question: string): boole
 function aliasFor(related: RelatedChunk[]): Map<string, RelatedChunk["chunk"]> {
   const aliases = new Map<string, RelatedChunk["chunk"]>();
   let uploadedCount = 0;
-  for (const { chunk } of related) {
+  // 공식 공개 자료는 기준일이 최근인 것부터 보여준다 (같은 주제의 자료가 서로 다를 때 최신을 먼저 읽게 한다). 올린 자료는 그 뒤에 둔다.
+  const ordered = [
+    ...related.filter((r) => r.chunk.origin === "public").sort((a, b) => b.chunk.baseDate.localeCompare(a.chunk.baseDate)),
+    ...related.filter((r) => r.chunk.origin === "uploaded"),
+  ];
+  for (const { chunk } of ordered) {
     aliases.set(chunk.origin === "uploaded" ? `U${++uploadedCount}` : chunk.id, chunk);
   }
   return aliases;
+}
+
+// 내용이 이 정도 이상 비슷한 더 최근 항목이 있으면 "이후 자료가 있다"고 알려 준다.
+// 오래된 자료가 질문과 말이 가장 잘 맞아도, 더 최근 자료가 같은 주제를 바꿨는지 AI가 확인하게 하려는 것이다.
+const NEWER_SIMILAR_MIN = 0.74;
+
+function newerNotice(alias: string, chunk: RelatedChunk["chunk"], aliases: Map<string, RelatedChunk["chunk"]>): string {
+  if (chunk.origin !== "public") return "";
+  const newer = [...aliases]
+    .filter(([otherAlias, other]) => otherAlias !== alias && other.origin === "public" && other.baseDate > chunk.baseDate)
+    .filter(([, other]) => (chunkSimilarity(chunk.id, other.id) ?? 0) >= NEWER_SIMILAR_MIN)
+    .map(([otherAlias, other]) => `${otherAlias}(기준일 ${other.baseDate})`);
+  return newer.length > 0
+    ? `\n주의: 같은 주제를 다룬 더 최근 항목이 있습니다 → ${newer.join(", ")}. 값이 다르면 더 최근 항목을 따르세요.`
+    : "";
 }
 
 function formatItems(aliases: Map<string, RelatedChunk["chunk"]>): string {
   return [...aliases]
     .map(([alias, chunk]) => {
       const origin = chunk.origin === "uploaded" ? `사용자 업로드 자료, 업로드일 ${chunk.baseDate}` : `공식 공개 자료, 기준일 ${chunk.baseDate}`;
-      return `[id: ${alias}]\n자료: ${chunk.source} (${origin})\n항목: ${chunk.item}\n본문:\n${chunk.text}`;
+      return `[id: ${alias}]\n자료: ${chunk.source} (${origin})\n항목: ${chunk.item}${newerNotice(alias, chunk, aliases)}\n본문:\n${chunk.text}`;
     })
     .join("\n\n---\n\n");
 }
