@@ -13,7 +13,7 @@ try {
   const page = await client.models.list();
   console.log(`✅ OpenAI 연결 성공: 사용 가능한 모델 ${page.data.length}개 확인`);
 
-  const wanted = ["text-embedding-3-small", process.env.OPENAI_MODEL].filter(Boolean);
+  const wanted = ["text-embedding-3-large", process.env.OPENAI_MODEL].filter(Boolean);
   const available = new Set(page.data.map((model) => model.id));
   for (const id of wanted) {
     console.log(`${available.has(id) ? "✅" : "⚠"} ${id}: ${available.has(id) ? "사용 가능" : "목록에 없음"}`);
