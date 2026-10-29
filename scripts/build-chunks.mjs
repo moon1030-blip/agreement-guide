@@ -1,6 +1,7 @@
 // 공개 자료 원문(data/raw/*.md)을 항목 단위로 나눠 data/chunks.json을 만든다 (PLAN 3번).
 // Design Ref: §5.1·§6 — 항목마다 id·자료명·항목 제목·본문·기준일·원문 주소를 붙인다.
 // 실행: npm run build:chunks   (다른 폴더 시험: node scripts/build-chunks.mjs <원문 폴더> <출력 파일>)
+import { createHash } from "node:crypto";
 import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -82,4 +83,33 @@ if (errors.length > 0) {
 await mkdir(path.dirname(outFile), { recursive: true });
 await writeFile(outFile, JSON.stringify(chunks, null, 2) + "\n", "utf8");
 console.log(`✅ 자료 ${files.length}개에서 항목 ${chunks.length}개를 ${outFile}에 저장했습니다.`);
+
+// 화면 맨 위의 "자료 기준일"을 위한 data/meta.json. 자료 내용이 바뀐 실행에서만 기준일을 오늘로 바꾼다
+// (같은 자료로 다시 실행하면 날짜가 그대로다). 처음 만들 때는 가장 최근 자료의 기준일을 쓴다.
+// 자료를 새로 수집해 이 스크립트를 실행하면 기준일이 자동으로 갱신된다 (Design §12.3).
+const metaFile = path.join(path.dirname(outFile), "meta.json");
+const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+const contentHash = createHash("sha256").update(JSON.stringify(chunks)).digest("hex");
+const latestSourceDate = chunks.map((chunk) => chunk.baseDate).sort().at(-1) ?? null;
+
+let previous = null;
+try {
+  previous = JSON.parse(await readFile(metaFile, "utf8"));
+} catch {
+  // 처음 실행이면 이전 기록이 없다.
+}
+
+const changed = !previous || previous.contentHash !== contentHash;
+const updatedAt = !changed ? previous.updatedAt : previous ? today : (latestSourceDate ?? today);
+const meta = {
+  updatedAt,
+  itemCount: chunks.length,
+  sourceCount: new Set(chunks.map((chunk) => chunk.source)).size,
+  latestSourceDate,
+  contentHash,
+};
+await writeFile(metaFile, JSON.stringify(meta, null, 2) + "\n", "utf8");
+console.log(
+  `📅 자료 기준일: ${updatedAt} (${changed ? (previous ? "자료가 바뀌어 오늘 날짜로 갱신" : "처음 기록") : "자료 변경 없음, 그대로"})`,
+);
 if (files.length === 0) console.log("ℹ data/raw에 옮긴 자료가 아직 없습니다. README.md의 수집 목록을 참고하세요.");
