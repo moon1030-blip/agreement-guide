@@ -75,7 +75,7 @@ export default function UploadPanel({ docs, onAdd, onRemove }: UploadPanelProps)
       <div>
         <h2 className="font-medium">내 자료 추가 (선택)</h2>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          공개된 PDF를 올리면 답변의 근거로 함께 씁니다. PDF만, 파일당 {MAX_UPLOAD_BYTES / 1024 / 1024}MB 이하, 최대{" "}
+          새출발기금과 관련된 공개 PDF를 올리면 답변의 근거로 함께 씁니다. 새출발기금과 관련 없는 질문은 올린 자료에 답이 있어도 답변할 수 없어요. PDF만, 파일당 {MAX_UPLOAD_BYTES / 1024 / 1024}MB 이하, 최대{" "}
           {MAX_UPLOAD_FILES}개까지, 글자가 있는 PDF만 가능해요(스캔본 불가).
         </p>
       </div>

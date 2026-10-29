@@ -54,12 +54,9 @@ export async function POST(request: Request) {
       ...findUploadedRelated(questionVector, uploads.docs),
     ];
     // Design §5.2-5: 관련 항목이 없으면 답변 AI를 부르지 않는다.
-    // 새출발기금과 관련 없는 질문이면 "답변 불가", 관련 말이 있으면 "근거 없음"으로 답한다.
+    // 새출발기금과 관련 없는 질문이면 올린 자료가 있어도 "답변 불가", 관련 말이 있으면 "근거 없음"으로 답한다.
     if (related.length === 0) {
-      const maybeAboutUpload = uploads.docs.length > 0;
-      return Response.json(
-        maybeAboutUpload || looksLikeDomainQuestion(validation.question) ? noEvidenceResponse() : outOfScopeResponse(),
-      );
+      return Response.json(looksLikeDomainQuestion(validation.question) ? noEvidenceResponse() : outOfScopeResponse());
     }
 
     return Response.json(await generateAnswer(validation.question, related));
