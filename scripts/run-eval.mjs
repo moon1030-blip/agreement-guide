@@ -5,6 +5,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 const BASE_URL = process.env.EVAL_URL ?? "http://localhost:3000";
+// 채점이 끝난 기존 결과 파일을 덮어쓰고 싶지 않을 때는 EVAL_OUT으로 다른 파일을 지정한다.
+const OUT_FILE = process.env.EVAL_OUT ?? "data/eval/results.json";
 const TIME_LIMIT_SEC = 10;
 const questions = JSON.parse(await readFile("data/eval/questions.json", "utf8"));
 
@@ -39,6 +41,11 @@ for (const [index, item] of questions.entries()) {
     code: body.code,
     seconds,
     answer: body.answer,
+    verdict: body.verdict,
+    headline: body.headline,
+    reasons: body.reasons ?? [],
+    cautions: body.cautions ?? [],
+    needsInquiry: body.needsInquiry ?? false,
     ambiguous: body.ambiguous ?? false,
     interpretations: body.interpretations ?? [],
     termMismatch: body.termMismatch ?? [],
@@ -54,7 +61,9 @@ for (const [index, item] of questions.entries()) {
     kind: shouldBeNoEvidence ? "no_evidence_expected" : "answerable",
     sourcesComplete: (body.sources ?? []).every((s) => s.id && s.source && s.item && s.baseDate && s.url && s.excerpt),
     expectedSourceFound: shouldBeNoEvidence ? null : item.expectedSourceIds.some((id) => sourceIds.includes(id)),
-    gotNoEvidence: body.status === "no_evidence",
+    // "근거 없음"(새출발기금 질문인데 자료에 없음)과 "답변 불가"(새출발기금과 무관한 질문) 모두 추측 답변을 하지 않은 것으로 본다.
+    gotNoEvidence: body.status === "no_evidence" || body.status === "out_of_scope",
+    gotOutOfScope: body.status === "out_of_scope",
   });
   console.log(`${String(index + 1).padStart(2)}/${questions.length} ${seconds}초 ${body.status ?? body.code} | ${item.question.slice(0, 40)}`);
 }
@@ -78,6 +87,7 @@ const summary = {
   noEvidence: {
     questions: noEvidence.length,
     gotNoEvidence: noEvidence.filter((r) => r.gotNoEvidence).length,
+    ofWhichOutOfScope: noEvidence.filter((r) => r.gotOutOfScope).length,
   },
   answerable: {
     questions: answerable.length,
@@ -85,9 +95,20 @@ const summary = {
     wrongNoEvidence: answerable.filter((r) => r.gotNoEvidence).length,
     expectedSourceFound: answerable.filter((r) => r.expectedSourceFound).length,
   },
+  // 구조화 답변 점검: 결론·결론 표시가 있는지, 설명 문장마다 근거 번호가 달렸는지, 답변이 500자 이내인지
+  structure: {
+    withHeadlineAndVerdict: answered.filter((r) => r.headline && r.verdict).length,
+    reasonSentences: answered.reduce((sum, r) => sum + r.reasons.length, 0),
+    reasonSentencesWithCites: answered.reduce((sum, r) => sum + r.reasons.filter((p) => p.cites.length > 0).length, 0),
+    citesOutOfRange: answered.reduce(
+      (sum, r) => sum + [...r.reasons, ...r.cautions].flatMap((p) => p.cites).filter((n) => n < 1 || n > r.sources.length).length,
+      0,
+    ),
+    longestAnswerChars: Math.max(0, ...answered.map((r) => r.answer.length)),
+  },
   errors: results.filter((r) => r.status === "error").length,
 };
 
-await writeFile("data/eval/results.json", JSON.stringify({ summary, results }, null, 2) + "\n", "utf8");
+await writeFile(OUT_FILE, JSON.stringify({ summary, results }, null, 2) + "\n", "utf8");
 console.log("\n" + JSON.stringify(summary, null, 2));
-console.log("\n결과를 data/eval/results.json에 저장했습니다.");
+console.log(`\n결과를 ${OUT_FILE}에 저장했습니다.`);

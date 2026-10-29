@@ -67,7 +67,7 @@ export default function AskForm() {
         signal: controller.signal,
       });
       const response = (await res.json()) as AskResponse;
-      setAnswer({ kind: "done", response });
+      setAnswer({ kind: "done", question: text, response });
     } catch {
       setAnswer({ kind: "failed", timedOut: controller.signal.aborted });
     } finally {

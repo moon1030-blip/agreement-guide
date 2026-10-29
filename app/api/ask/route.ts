@@ -1,6 +1,6 @@
 // Design Ref: §5.2·§7·§13 — 질문을 받는 서버 API.
 // 입력 검사 → 올린 자료 검증 → 하루 제한 → 관련 자료 찾기(공개 자료 + 올린 자료) → 찾은 항목만 근거로 AI 해석 답변 → 서버 확인 순서로 처리한다.
-import { generateAnswer, noEvidenceResponse } from "@/lib/answer";
+import { generateAnswer, looksLikeDomainQuestion, noEvidenceResponse, outOfScopeResponse } from "@/lib/answer";
 import type { ErrorResponse } from "@/lib/askResponse";
 import { tryConsumeDailyQuestion } from "@/lib/dailyLimit";
 import { toAiErrorResponse } from "@/lib/openai";
@@ -53,8 +53,14 @@ export async function POST(request: Request) {
       ...findRelatedByVector(validation.question, questionVector),
       ...findUploadedRelated(questionVector, uploads.docs),
     ];
-    // Design §5.2-5: 관련 항목이 없으면 답변 AI를 부르지 않고 "근거 없음"으로 답한다.
-    if (related.length === 0) return Response.json(noEvidenceResponse());
+    // Design §5.2-5: 관련 항목이 없으면 답변 AI를 부르지 않는다.
+    // 새출발기금과 관련 없는 질문이면 "답변 불가", 관련 말이 있으면 "근거 없음"으로 답한다.
+    if (related.length === 0) {
+      const maybeAboutUpload = uploads.docs.length > 0;
+      return Response.json(
+        maybeAboutUpload || looksLikeDomainQuestion(validation.question) ? noEvidenceResponse() : outOfScopeResponse(),
+      );
+    }
 
     return Response.json(await generateAnswer(validation.question, related));
   } catch (error) {
