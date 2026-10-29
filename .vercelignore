@@ -1,0 +1,5 @@
+.env
+.env*
+.bkit
+.git
+data/eval/results.json

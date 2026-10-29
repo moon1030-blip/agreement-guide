@@ -4,6 +4,7 @@ import { generateAnswer, looksLikeDomainQuestion, noEvidenceResponse, outOfScope
 import type { ErrorResponse } from "@/lib/askResponse";
 import { refundDailyQuestion, tryConsumeDailyQuestion } from "@/lib/dailyLimit";
 import { toAiErrorResponse } from "@/lib/openai";
+import { rejectCrossSite, requireJson } from "@/lib/requestGuard";
 import { embedQuestion, findRelatedByVector } from "@/lib/retrieve";
 import { findUploadedRelated, parseUploadedDocs } from "@/lib/uploads";
 import { validateQuestion } from "@/lib/validate";
@@ -12,7 +13,13 @@ function errorResponse(status: number, body: ErrorResponse) {
   return Response.json(body, { status });
 }
 
+// 서버리스 함수 실행 시간 상한(초). PDF 처리가 길어져도 이 시간에 끊긴다.
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
+  const blocked = rejectCrossSite(request) ?? requireJson(request);
+  if (blocked) return blocked;
+
   let body: unknown;
   try {
     body = await request.json();

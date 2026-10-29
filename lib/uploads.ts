@@ -4,6 +4,7 @@ import "server-only";
 import { cosine, type RelatedChunk } from "./retrieve";
 import {
   MAX_CHUNK_CHARS,
+  MAX_CHUNKS_PER_FILE,
   MAX_UPLOAD_CHUNKS_TOTAL,
   MAX_UPLOAD_FILES,
   UPLOAD_VECTOR_DIMENSIONS,
@@ -26,6 +27,15 @@ export type ParsedUploads =
 
 const invalid = (message: string): ParsedUploads => ({ ok: false, code: "UPLOAD_INVALID", message });
 
+const CONTROL_OR_BRACKET = new RegExp("[\\u0000-\\u001f\\u007f<>\\[\\]]", "g");
+
+function cleanDisplayName(name: string): string {
+  return name.replace(CONTROL_OR_BRACKET, " ").replace(/\s+/g, " ").trim().slice(0, MAX_NAME_LENGTH);
+}
+
+// 공백뿐이거나 너무 짧은 조각은 받지 않는다 (검사를 느리게 만드는 입력 방지).
+const MIN_CHUNK_TEXT = 30;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -40,7 +50,11 @@ export function parseUploadedDocs(raw: unknown): ParsedUploads {
 
   for (const rawDoc of raw) {
     if (!isRecord(rawDoc) || !Array.isArray(rawDoc.chunks)) return invalid("올린 자료의 형식이 올바르지 않아요.");
-    const { docId, name, uploadedAt } = rawDoc;
+    // 조각을 하나씩 검사하기 전에 개수부터 본다 (터무니없이 많은 조각으로 시간을 쓰게 하지 못하게).
+    if (rawDoc.chunks.length > MAX_CHUNKS_PER_FILE) return invalid("올린 자료의 분량이 너무 많아요. 일부를 지워 주세요.");
+    const { docId, name: rawName, uploadedAt } = rawDoc;
+    // 화면을 우회해 보낸 파일 이름의 줄바꿈·꺾쇠·대괄호는 답변 AI에게 가는 글에 섞이므로 지운다.
+    const name = typeof rawName === "string" ? cleanDisplayName(rawName) : rawName;
     if (
       typeof docId !== "string" || docId.length === 0 || docId.length > MAX_ID_LENGTH ||
       typeof name !== "string" || name.length === 0 || name.length > MAX_NAME_LENGTH ||
@@ -56,7 +70,7 @@ export function parseUploadedDocs(raw: unknown): ParsedUploads {
       if (
         typeof id !== "string" || id.length === 0 || id.length > MAX_ID_LENGTH ||
         typeof page !== "number" || !Number.isInteger(page) || page < 1 || page > 100_000 ||
-        typeof text !== "string" || text.length === 0 || text.length > MAX_CHUNK_CHARS ||
+        typeof text !== "string" || text.trim().length < MIN_CHUNK_TEXT || text.length > MAX_CHUNK_CHARS ||
         !Array.isArray(vec) || vec.length !== UPLOAD_VECTOR_DIMENSIONS ||
         !vec.every((v) => typeof v === "number" && Number.isFinite(v))
       ) {

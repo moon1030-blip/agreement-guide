@@ -5,6 +5,7 @@ import embeddingsIndex from "@/data/embeddings.json";
 import type { ErrorCode } from "@/lib/askResponse";
 import { refundDailyUpload, tryConsumeDailyUpload, todayInSeoul } from "@/lib/dailyLimit";
 import { getOpenAI, toAiErrorResponse } from "@/lib/openai";
+import { rejectCrossSite } from "@/lib/requestGuard";
 import { PdfTooLongError, PdfUnreadableError, chunkPages, extractPdfPages } from "@/lib/pdf";
 import {
   MAX_CHUNKS_PER_FILE,
@@ -29,7 +30,13 @@ function cleanFileName(name: string): string {
   return base.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, MAX_NAME_LENGTH);
 }
 
+// 서버리스 함수 실행 시간 상한(초). PDF 처리가 길어져도 이 시간에 끊긴다.
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
+  const blocked = rejectCrossSite(request);
+  if (blocked) return blocked;
+
   let form: FormData;
   try {
     form = await request.formData();

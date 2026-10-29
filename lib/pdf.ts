@@ -1,7 +1,10 @@
 // Design Ref: §13.2 (2~4단계) — 올린 PDF에서 글자를 꺼내고 쪽 단위 조각으로 나눈다 (서버 전용).
 import "server-only";
-import { extractText, getDocumentProxy } from "unpdf";
-import { MAX_UPLOAD_PAGES } from "./uploadTypes";
+import { getDocumentProxy } from "unpdf";
+import { MAX_UPLOAD_PAGES, MAX_UPLOAD_TEXT_CHARS } from "./uploadTypes";
+
+// 글자 꺼내기에 쓸 수 있는 시간 (함수 전체 제한 maxDuration 30초 안에서 나머지 처리 시간을 남긴다).
+const EXTRACT_TIME_LIMIT_MS = 15_000;
 
 // 조각 하나의 목표 길이. 이 길이를 넘기면 줄이 끝나는 곳에서 자른다.
 const TARGET_CHUNK_CHARS = 450;
@@ -22,10 +25,28 @@ export async function extractPdfPages(bytes: Uint8Array): Promise<string[]> {
   if (pdf.numPages > MAX_UPLOAD_PAGES) {
     throw new PdfTooLongError(`쪽 수가 너무 많아요 (${MAX_UPLOAD_PAGES}쪽 이하만 올릴 수 있어요).`);
   }
+  // 압축된 PDF는 풀면 수백 배로 커질 수 있다. 한 쪽씩 꺼내면서 글자 수와 시간을 확인해, 한도를 넘으면 바로 멈춘다.
+  const deadline = Date.now() + EXTRACT_TIME_LIMIT_MS;
+  const pages: string[] = [];
+  let total = 0;
   try {
-    const { text } = await extractText(pdf, { mergePages: false });
-    return text;
-  } catch {
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      if (Date.now() > deadline) throw new PdfTooLongError("PDF를 읽는 데 너무 오래 걸려요. 필요한 부분만 나눠서 올려 주세요.");
+      const content = await (await pdf.getPage(pageNumber)).getTextContent();
+      let text = "";
+      for (const item of content.items) {
+        if (!("str" in item)) continue;
+        text += item.str + (item.hasEOL ? "\n" : " ");
+        if (total + text.length > MAX_UPLOAD_TEXT_CHARS) {
+          throw new PdfTooLongError("내용이 너무 길어요. 필요한 부분만 나눠서 올려 주세요.");
+        }
+      }
+      total += text.length;
+      pages.push(text);
+    }
+    return pages;
+  } catch (error) {
+    if (error instanceof PdfTooLongError) throw error;
     throw new PdfUnreadableError("PDF에서 글자를 꺼내지 못했어요.");
   }
 }
