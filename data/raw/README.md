@@ -58,6 +58,8 @@ FAQ 화면 아래 쪽 번호(1~5)를 눌러 넘기고, 질문을 눌러 답변�
 
 보도자료 게시판 검색: https://www.fsc.go.kr/no010101 (검색어 "새출발기금")
 
+**공지사항도 자동으로 모은다:** `npm run fetch:notices`가 새출발기금 홈페이지 공지사항(https://www.newstartfund.or.kr/Board/List.do) 전체 쪽을 돌며 새 글을 `notice-글번호.md`로 만든다 (2026-10-29에 51건 중 34건 수집). 본문이 그림이나 첨부파일(hwp·pdf)뿐인 글 17건은 글자가 없어 수집하지 않고, 실행 결과에 목록으로 보여 준다 (예: 지원제외업종 기준, 재산조사 Q&A). 첨부파일 내용은 읽지 않는다. 공지의 `baseDate`는 글 화면의 "작성일"이라 목록의 게시일과 하루 정도 다를 수 있다. 모은 뒤 `npm run build:chunks` → `npm run build:index`를 실행한다.
+
 ## 자료 기준일 (화면 맨 위 "자료 기준일")
 
 `npm run build:chunks`를 실행하면 `data/meta.json`이 함께 만들어지고, 화면의 "자료 기준일"이 이 파일을 따라 바뀐다.
