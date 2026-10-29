@@ -17,7 +17,7 @@ function createDailyCounter(limit: number) {
 
   // 오늘 한도가 남아 있으면 1건을 쓰고 true, 다 썼으면 false를 돌려준다.
   // 확인과 차감을 한 번에 해서, 동시에 들어온 요청이 한도를 넘지 않게 한다.
-  return (now: Date = new Date()): boolean => {
+  const tryConsume = (now: Date = new Date()): boolean => {
     const today = todayInSeoul(now);
     if (counter.date !== today) counter = { date: today, count: 0 };
 
@@ -25,7 +25,20 @@ function createDailyCounter(limit: number) {
     counter.count += 1;
     return true;
   };
+
+  // 처리하지 못하고 끝난 요청(OpenAI 오류·시간 초과)이 쓴 1건을 돌려준다 (DESIGN §5.2: 처리가 끝난 질문만 센다).
+  // 날짜가 바뀐 뒤에는 이미 0으로 돌아갔으므로 건드리지 않는다.
+  const refund = (now: Date = new Date()): void => {
+    if (counter.date === todayInSeoul(now) && counter.count > 0) counter.count -= 1;
+  };
+
+  return { tryConsume, refund };
 }
 
-export const tryConsumeDailyQuestion = createDailyCounter(DAILY_QUESTION_LIMIT);
-export const tryConsumeDailyUpload = createDailyCounter(DAILY_UPLOAD_LIMIT);
+const questionCounter = createDailyCounter(DAILY_QUESTION_LIMIT);
+const uploadCounter = createDailyCounter(DAILY_UPLOAD_LIMIT);
+
+export const tryConsumeDailyQuestion = questionCounter.tryConsume;
+export const refundDailyQuestion = questionCounter.refund;
+export const tryConsumeDailyUpload = uploadCounter.tryConsume;
+export const refundDailyUpload = uploadCounter.refund;

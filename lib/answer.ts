@@ -3,7 +3,7 @@
 import "server-only";
 import type { AnswerPoint, AnswerResponse, Source, Verdict } from "./askResponse";
 import { plainAnswer } from "./answerText";
-import { getOpenAI } from "./openai";
+import { ANSWER_TIMEOUT_MS, getOpenAI } from "./openai";
 import { chunkSimilarity, type RelatedChunk } from "./retrieve";
 
 // PRD 5번 규칙의 숫자
@@ -255,21 +255,24 @@ export async function generateAnswer(question: string, related: RelatedChunk[]):
   if (!model) throw new Error("OPENAI_MODEL이 설정되지 않았습니다. .env를 확인하세요.");
 
   const aliases = aliasFor(related);
-  const completion = await getOpenAI().chat.completions.create({
-    model,
-    temperature: 0,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `[자료 항목]\n${formatItems(aliases)}\n\n[담당자 질문]\n${question}`,
+  const completion = await getOpenAI().chat.completions.create(
+    {
+      model,
+      temperature: 0,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `[자료 항목]\n${formatItems(aliases)}\n\n[담당자 질문]\n${question}`,
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "agreement_answer", strict: true, schema: RESPONSE_SCHEMA },
       },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: { name: "agreement_answer", strict: true, schema: RESPONSE_SCHEMA },
     },
-  });
+    { timeout: ANSWER_TIMEOUT_MS },
+  );
 
   const content = completion.choices[0]?.message?.content;
   if (!content) throw new Error("AI 응답이 비어 있습니다.");

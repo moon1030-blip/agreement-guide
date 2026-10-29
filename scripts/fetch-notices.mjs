@@ -1,12 +1,14 @@
-// 새출발기금 홈페이지 공지사항을 모아 data/raw/notice-번호.md 초안을 만든다.
+// 새출발기금 홈페이지 공지사항을 모아 data/draft/notice-번호.md 초안을 만든다.
 // 실행: npm run fetch:notices   (옵션: --dry-run 파일을 쓰지 않고 목록만 보기)
 // 이미 있는 글(notice-번호.md)은 건너뛴다. 본문이 그림·첨부파일(hwp/pdf)뿐인 글은 글자가 없어 수집하지 않고 목록으로 알려 준다.
-// 모은 뒤: npm run build:chunks → npm run build:index
-import { readdir, writeFile } from "node:fs/promises";
+// 모은 뒤: npm run review:drafts → (확인) → npm run review:drafts -- --approve → npm run build:chunks → npm run build:index
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const BASE = "https://www.newstartfund.or.kr";
 const RAW_DIR = "data/raw";
+// 수집한 초안은 검토 전까지 앱 자료(data/raw)에 넣지 않는다. 검토·반영은 npm run review:drafts (DESIGN §12.2 B안).
+const DRAFT_DIR = "data/draft";
 const dryRun = process.argv.includes("--dry-run");
 const MIN_TEXT = 60;
 const MAX_ITEM = 900;
@@ -72,7 +74,8 @@ const toMarkdown = (post) => {
   return `---\nsource: 새출발기금 홈페이지 공지사항 「${post.title}」\nurl: ${BASE}/Board/View.do?idx=${post.id}\nbaseDate: ${post.date}\n---\n\n${sections.join("\n")}`;
 };
 
-const have = new Set((await readdir(RAW_DIR)).map((name) => name.match(/^notice-(\d+)\.md$/)?.[1]).filter(Boolean));
+await mkdir(DRAFT_DIR, { recursive: true });
+const have = new Set([...(await readdir(RAW_DIR)), ...(await readdir(DRAFT_DIR))].map((name) => name.match(/^notice-(\d+)\.md$/)?.[1]).filter(Boolean));
 const ids = await listIds();
 console.log(`공지사항 ${ids.length}건 발견, 이미 수집 ${have.size}건`);
 const skipped = [];
@@ -85,9 +88,11 @@ for (const id of ids.filter((x) => !have.has(x))) {
     skipped.push(`${post.date} ${post.title} (글자 ${textLength}자, 그림·첨부파일 위주)`);
     continue;
   }
-  if (!dryRun) await writeFile(path.join(RAW_DIR, `notice-${id}.md`), toMarkdown(post), "utf8");
+  if (!dryRun) await writeFile(path.join(DRAFT_DIR, `notice-${id}.md`), toMarkdown(post), "utf8");
   written++;
   console.log(`${dryRun ? "[시험] " : ""}notice-${id}.md  ${post.date}  ${post.title}  (${textLength}자)`);
 }
-console.log(`\n새로 만든 파일 ${written}개, 건너뜀 ${skipped.length}건 (글자가 없는 글):`);
+console.log(`
+초안 ${written}개를 data/draft에 만들었습니다. 다음: npm run review:drafts`);
+console.log(`건너뜀 ${skipped.length}건 (글자가 없는 글):`);
 for (const line of skipped) console.log(" - " + line);

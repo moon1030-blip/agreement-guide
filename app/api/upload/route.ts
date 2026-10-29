@@ -3,7 +3,7 @@
 // Plan SC: 대외비·개인정보가 걸리면 외부 AI로 보내기 전에 거절한다.
 import embeddingsIndex from "@/data/embeddings.json";
 import type { ErrorCode } from "@/lib/askResponse";
-import { tryConsumeDailyUpload, todayInSeoul } from "@/lib/dailyLimit";
+import { refundDailyUpload, tryConsumeDailyUpload, todayInSeoul } from "@/lib/dailyLimit";
 import { getOpenAI, toAiErrorResponse } from "@/lib/openai";
 import { PdfTooLongError, PdfUnreadableError, chunkPages, extractPdfPages } from "@/lib/pdf";
 import {
@@ -125,6 +125,7 @@ export async function POST(request: Request) {
     };
     return Response.json({ status: "uploaded", doc });
   } catch (error) {
+    refundDailyUpload();
     const { status, body } = toAiErrorResponse(error);
     return Response.json(body, { status });
   }

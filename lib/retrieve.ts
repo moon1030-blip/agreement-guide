@@ -12,7 +12,7 @@
 import "server-only";
 import chunks from "@/data/chunks.json";
 import index from "@/data/embeddings.json";
-import { getOpenAI } from "./openai";
+import { EMBED_TIMEOUT_MS, getOpenAI } from "./openai";
 
 // 미리 넣어 둔 공개 자료와 사용자가 올린 자료의 조각을 같은 모양으로 다룬다.
 export type Chunk = {
@@ -110,11 +110,14 @@ export function expandQuestion(question: string): string {
 
 // 질문의 뜻 지문을 만든다. 공개 자료 찾기와 올린 자료 찾기가 이 값을 함께 쓴다.
 export async function embedQuestion(question: string): Promise<number[]> {
-  const res = await getOpenAI().embeddings.create({
-    model: index.model,
-    dimensions: index.dimensions,
-    input: expandQuestion(question),
-  });
+  const res = await getOpenAI().embeddings.create(
+    {
+      model: index.model,
+      dimensions: index.dimensions,
+      input: expandQuestion(question),
+    },
+    { timeout: EMBED_TIMEOUT_MS },
+  );
   return res.data[0].embedding;
 }
 

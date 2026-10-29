@@ -11,7 +11,8 @@
     "build:index": "node --env-file=.env scripts/build-index.mjs",
     "fetch:fsc": "node scripts/fetch-fsc.mjs",
     "eval": "node scripts/run-eval.mjs",
-    "fetch:notices": "node scripts/fetch-notices.mjs"
+    "fetch:notices": "node scripts/fetch-notices.mjs",
+    "review:drafts": "node scripts/review-drafts.mjs"
   },
   "dependencies": {
     "next": "16.4.3",

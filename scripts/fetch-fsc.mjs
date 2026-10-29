@@ -1,4 +1,4 @@
-// 금융위원회 보도자료 게시판에서 "새출발기금" 글을 찾아, 아직 없는 글을 data/raw/fsc-게시일-번호.md 초안으로 만든다.
+// 금융위원회 보도자료 게시판에서 "새출발기금" 글을 찾아, 아직 없는 글을 data/draft/fsc-게시일-번호.md 초안으로 만든다.
 // Design Ref: §12 — 수집은 자동, 반영은 사람 검토 후. 이 스크립트는 초안만 만든다.
 //
 // 실행:  npm run fetch:fsc             (새 글만 가져옴)
@@ -14,6 +14,8 @@ import path from "node:path";
 
 const BASE = "https://www.fsc.go.kr";
 const RAW_DIR = "data/raw";
+// 수집한 초안은 검토 전까지 앱 자료(data/raw)에 넣지 않는다. 검토·반영은 npm run review:drafts (DESIGN §12.2 B안).
+const DRAFT_DIR = "data/draft";
 const KEYWORD = "새출발기금";
 const MAX_LIST_PAGES = 5;
 const REQUEST_GAP_MS = 1000;
@@ -208,8 +210,8 @@ function buildMarkdown(post) {
 }
 
 // ---------- 실행 ----------
-await mkdir(RAW_DIR, { recursive: true });
-const existing = (await readdir(RAW_DIR)).filter((name) => /^fsc-\d{4}-\d{2}-\d{2}-(\d+)\.md$/.test(name));
+await mkdir(DRAFT_DIR, { recursive: true });
+const existing = [...(await readdir(RAW_DIR)), ...(await readdir(DRAFT_DIR))].filter((name) => /^fsc-\d{4}-\d{2}-\d{2}-(\d+)\.md$/.test(name));
 const haveIds = new Set(existing.map((name) => name.match(/-(\d+)\.md$/)[1]));
 
 console.log(`금융위원회 보도자료 게시판에서 "${KEYWORD}" 글을 찾는 중…`);
@@ -235,7 +237,7 @@ for (const { id } of fresh.slice(0, limit)) {
       failed++;
       continue;
     }
-    const file = path.join(RAW_DIR, `fsc-${post.date}-${id}.md`);
+    const file = path.join(DRAFT_DIR, `fsc-${post.date}-${id}.md`);
     await writeFile(file, result.markdown, "utf8");
     console.log(`✅ ${file} — 항목 ${result.itemCount}개 (${post.date}) ${shortTitle(post.title)}`);
     created++;
@@ -248,8 +250,9 @@ for (const { id } of fresh.slice(0, limit)) {
 console.log(`\n초안 ${created}건을 만들었습니다${failed ? ` (실패·건너뜀 ${failed}건)` : ""}.`);
 if (created > 0) {
   console.log("다음 순서로 진행하세요:");
-  console.log("  1) data/raw/fsc-*.md를 열어 본문·소제목·개인정보를 검토한다 (docs: DESIGN.md 12.6 체크리스트)");
-  console.log("  2) npm run build:chunks   (형식 확인, 자료 기준일 갱신)");
-  console.log("  3) npm run build:index    (새 항목의 뜻 지문 생성)");
+  console.log("  1) npm run review:drafts            (data/draft의 초안을 자동 검사하고 검토 항목을 보여 줌)");
+  console.log("  2) 초안을 열어 본문·소제목을 확인한다 (DESIGN.md 12.6 체크리스트)");
+  console.log("  3) npm run review:drafts -- --approve   (검사를 통과한 초안을 data/raw로 옮김)");
+  console.log("  4) npm run build:chunks → npm run build:index");
 }
 if (failed > 0 && created === 0) process.exit(1);

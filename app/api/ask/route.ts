@@ -2,7 +2,7 @@
 // 입력 검사 → 올린 자료 검증 → 하루 제한 → 관련 자료 찾기(공개 자료 + 올린 자료) → 찾은 항목만 근거로 AI 해석 답변 → 서버 확인 순서로 처리한다.
 import { generateAnswer, looksLikeDomainQuestion, noEvidenceResponse, outOfScopeResponse } from "@/lib/answer";
 import type { ErrorResponse } from "@/lib/askResponse";
-import { tryConsumeDailyQuestion } from "@/lib/dailyLimit";
+import { refundDailyQuestion, tryConsumeDailyQuestion } from "@/lib/dailyLimit";
 import { toAiErrorResponse } from "@/lib/openai";
 import { embedQuestion, findRelatedByVector } from "@/lib/retrieve";
 import { findUploadedRelated, parseUploadedDocs } from "@/lib/uploads";
@@ -61,6 +61,8 @@ export async function POST(request: Request) {
 
     return Response.json(await generateAnswer(validation.question, related));
   } catch (error) {
+    // 답변을 만들지 못했으니 오늘 질문 수에서 뺀다 (OpenAI 오류·시간 초과로 한도가 닳지 않게).
+    refundDailyQuestion();
     const { status, body } = toAiErrorResponse(error);
     return errorResponse(status, body);
   }
