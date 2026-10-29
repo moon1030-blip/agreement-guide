@@ -6,7 +6,8 @@
 //  - full: 제목 + 본문 (내용으로 찾기)
 //  - title: 제목만 (질문과 질문을 맞대어 찾기)
 // 검색할 때는 둘 중 높은 점수를 쓴다. 보정 결과 이 방식이 "깎아→감면", "독촉→추심"처럼
-// 표현이 다른 질문도 더 잘 찾았다 (lib/retrieve.ts 참고).
+// 표현이 다른 질문도 더 잘 찾았다. 문단별 지문도 시험했지만 오히려 순위가 흐트러져 쓰지 않는다.
+// 같은 단어가 본문에만 있는 경우는 lib/retrieve.ts의 글자 겹침 점수가 맡는다.
 import { readFile, writeFile } from "node:fs/promises";
 import OpenAI from "openai";
 
@@ -27,28 +28,29 @@ if (chunks.length === 0) {
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// 파일 크기를 줄이려고 소수점 6자리까지만 남긴다.
-const round = (vector) => vector.map((v) => Math.round(v * 1e6) / 1e6);
+// 파일 크기를 줄이려고 소수점 5자리까지만 남긴다.
+const round = (vector) => vector.map((v) => Math.round(v * 1e5) / 1e5);
 
 async function embed(texts) {
-  const res = await client.embeddings.create({
-    model: EMBEDDING_MODEL,
-    dimensions: DIMENSIONS,
-    input: texts,
-  });
-  return res.data.map((row) => round(row.embedding));
+  const out = [];
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    const res = await client.embeddings.create({
+      model: EMBEDDING_MODEL,
+      dimensions: DIMENSIONS,
+      input: texts.slice(i, i + BATCH_SIZE),
+    });
+    out.push(...res.data.map((row) => round(row.embedding)));
+  }
+  return out;
 }
 
 const vectors = [];
 try {
-  for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-    const batch = chunks.slice(i, i + BATCH_SIZE);
-    const [full, title] = await Promise.all([
-      embed(batch.map((chunk) => `${chunk.item}\n${chunk.text}`)),
-      embed(batch.map((chunk) => chunk.item)),
-    ]);
-    batch.forEach((chunk, j) => vectors.push({ id: chunk.id, full: full[j], title: title[j] }));
-  }
+  const [full, title] = await Promise.all([
+    embed(chunks.map((chunk) => `${chunk.item}\n${chunk.text}`)),
+    embed(chunks.map((chunk) => chunk.item)),
+  ]);
+  chunks.forEach((chunk, i) => vectors.push({ id: chunk.id, full: full[i], title: title[i] }));
 } catch (error) {
   const status = error?.status ? ` (HTTP ${error.status})` : "";
   console.error(`❌ 임베딩 생성 실패${status}: ${error?.message ?? error}`);
