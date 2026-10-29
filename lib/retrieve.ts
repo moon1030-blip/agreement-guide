@@ -14,8 +14,20 @@ import chunks from "@/data/chunks.json";
 import index from "@/data/embeddings.json";
 import { getOpenAI } from "./openai";
 
-export type Chunk = (typeof chunks)[number];
+// 미리 넣어 둔 공개 자료와 사용자가 올린 자료의 조각을 같은 모양으로 다룬다.
+export type Chunk = {
+  id: string;
+  source: string;
+  item: string;
+  text: string;
+  baseDate: string;
+  // 공식 자료의 원문 주소. 사용자가 올린 자료는 주소가 없다.
+  url: string | null;
+  origin: "public" | "uploaded";
+};
 export type RelatedChunk = { chunk: Chunk; score: number };
+
+const publicChunks: Chunk[] = chunks.map((chunk) => ({ ...chunk, origin: "public" as const }));
 
 // 답변 AI에게 넘기는 후보는 10개까지 넓게 잡는다. 그중 1자리는 글자 겹침으로 찾은 항목이다.
 // 화면에 보이는 근거는 AI가 실제로 쓴 항목 중 최대 5개로 줄인다 (PRD 5번, lib/answer.ts).
@@ -28,9 +40,9 @@ export const MIN_SCORE = 0.25;
 // 글자 겹침 점수가 이 이상이어야 다섯 번째 자리에 넣는다 (드문 단어 조각 2개 정도가 겹친 수준).
 const MIN_KEYWORD_SCORE = 5;
 
-const chunkById = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+const chunkById = new Map(publicChunks.map((chunk) => [chunk.id, chunk]));
 
-function cosine(a: number[], b: number[]): number {
+export function cosine(a: number[], b: number[]): number {
   let dot = 0;
   let normA = 0;
   let normB = 0;
@@ -69,13 +81,17 @@ function keywordScore(questionGrams: Set<string>, chunkId: string): number {
   return score;
 }
 
-export async function findRelated(question: string): Promise<RelatedChunk[]> {
+// 질문의 뜻 지문을 만든다. 공개 자료 찾기와 올린 자료 찾기가 이 값을 함께 쓴다.
+export async function embedQuestion(question: string): Promise<number[]> {
   const res = await getOpenAI().embeddings.create({
     model: index.model,
     dimensions: index.dimensions,
     input: question,
   });
-  const q = res.data[0].embedding;
+  return res.data[0].embedding;
+}
+
+export function findRelatedByVector(question: string, q: number[]): RelatedChunk[] {
   const questionGrams = bigrams(question);
 
   const byMeaning = index.vectors
@@ -88,7 +104,7 @@ export async function findRelated(question: string): Promise<RelatedChunk[]> {
 
   const topByMeaning = byMeaning.slice(0, MAX_BY_MEANING_WITH_KEYWORD);
   const taken = new Set(topByMeaning.map((r) => r.chunk.id));
-  const byKeyword = chunks
+  const byKeyword = publicChunks
     .filter((chunk) => !taken.has(chunk.id))
     .map((chunk) => ({ chunk, score: keywordScore(questionGrams, chunk.id) }))
     .filter((r) => r.score >= MIN_KEYWORD_SCORE)

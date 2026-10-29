@@ -39,3 +39,28 @@ export function validateQuestion(raw: string): ValidationResult {
 export function mentionsAgreementText(question: string): boolean {
   return AGREEMENT_REFERENCE.test(question);
 }
+
+// --- 사용자가 올린 PDF 본문 검사 (Design §13.2) ---
+// 공개 문서에도 날짜(2025-09-18)·전화번호가 흔하므로, 질문 검사보다 좁게 본다.
+
+// 대외비·내부 문서 표시
+const CONFIDENTIAL_MARKER = /대외비|내부\s*용|내부\s*자료|사외\s*비|Confidential|Internal\s+Use/i;
+// "제3조", "제 12 조" (협약·계약 문서는 조항 번호가 계속 나온다)
+const ARTICLE_REFERENCE = /제\s*\d+\s*조/g;
+const MAX_ARTICLE_REFERENCES = 3;
+// 계좌번호는 "계좌"라는 말 바로 뒤의 긴 숫자만 본다
+const ACCOUNT_AFTER_LABEL = /계좌[^\d\n]{0,12}\d[\d-]{7,}/;
+
+// 올릴 수 없는 이유를 한 줄로 돌려준다. 문제가 없으면 null.
+export function findUploadBlockedReason(text: string): string | null {
+  if (CONFIDENTIAL_MARKER.test(text)) {
+    return "'대외비'·'내부용' 같은 표시가 들어 있어요.";
+  }
+  if ((text.match(ARTICLE_REFERENCE) ?? []).length >= MAX_ARTICLE_REFERENCES) {
+    return "'제○조'가 여러 번 나와 협약·계약 문서로 보여요.";
+  }
+  if (RESIDENT_NUMBER.test(text) || ACCOUNT_AFTER_LABEL.test(text)) {
+    return "주민등록번호나 계좌번호로 보이는 숫자가 들어 있어요.";
+  }
+  return null;
+}

@@ -3,12 +3,14 @@
 // Design Ref: §4·§5.2 — ③ 질문 입력과 ④ 답변 영역. 질문을 /api/ask로 보내고 결과를 보여준다.
 import { useState } from "react";
 import type { AskResponse } from "@/lib/askResponse";
+import type { UploadedDoc } from "@/lib/uploadTypes";
 import {
   MAX_QUESTION_LENGTH,
   mentionsAgreementText,
   validateQuestion,
 } from "@/lib/validate";
 import AnswerView, { type AnswerState } from "./AnswerView";
+import UploadPanel from "./UploadPanel";
 
 // 임시 예시 질문. 공개 자료를 모으면(PLAN 2번) 자료에 답이 있는 질문으로 바꾼다.
 const EXAMPLE_QUESTIONS = [
@@ -28,6 +30,8 @@ export default function AskForm() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<AnswerState>({ kind: "idle" });
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
+  // Design §13: 올린 자료는 이 화면의 메모리에만 두고, 질문을 보낼 때마다 함께 보낸다. 새로고침하면 사라진다.
+  const [docs, setDocs] = useState<UploadedDoc[]>([]);
   const loading = answer.kind === "loading";
 
   // 입력 중에 바로 검사해, 개인정보로 보이는 숫자가 있으면 보내기 전에 막는다.
@@ -59,7 +63,7 @@ export default function AskForm() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: text }),
+        body: JSON.stringify(docs.length > 0 ? { question: text, uploaded: docs } : { question: text }),
         signal: controller.signal,
       });
       const response = (await res.json()) as AskResponse;
@@ -78,6 +82,11 @@ export default function AskForm() {
 
   return (
     <>
+      <UploadPanel
+        docs={docs}
+        onAdd={(doc) => setDocs((prev) => [...prev, doc])}
+        onRemove={(docId) => setDocs((prev) => prev.filter((doc) => doc.docId !== docId))}
+      />
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label htmlFor="question" className="font-medium">
           질문

@@ -11,6 +11,7 @@ const UNAVAILABLE_MESSAGE = "지금은 답변할 수 없습니다. 잠시 후 �
 
 // 다시 보내면 나아질 수 있는 오류에만 [다시 시도]를 보여준다.
 const RETRYABLE_CODES: ErrorCode[] = ["AI_ERROR", "AI_TIMEOUT"];
+// (UPLOAD_INVALID·UPLOAD_BLOCKED는 올린 자료를 지워야 해결되므로 다시 시도 버튼을 보이지 않는다)
 
 type AnswerViewProps = {
   state: AnswerState;
@@ -114,10 +115,16 @@ function SourceItem({ source, index }: { source: Source; index: number }) {
         <span className="font-medium">{index}.</span> {source.source} · {source.item}
       </p>
       <p className="text-zinc-500">
-        기준일 {source.baseDate} ·{" "}
-        <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">
-          원문 보기
-        </a>
+        {source.url ? (
+          <>
+            기준일 {source.baseDate} ·{" "}
+            <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">
+              원문 보기
+            </a>
+          </>
+        ) : (
+          <>업로드일 {source.baseDate} · 이 브라우저에만 있는 자료</>
+        )}
       </p>
       <blockquote className="border-l-2 border-zinc-300 pl-3 text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">
         {source.excerpt}
