@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 협약 길잡이
 
-## Getting Started
+새출발기금 업무 담당자가 궁금한 점을 문장으로 물으면, **이미 공개된 자료만을 근거로** 해석 답변을 주는 웹 앱입니다.
+모든 답변에 근거 출처(자료명·항목·기준일·원문 링크)와 원문 발췌를 함께 보여주고, 근거가 없으면 추측하지 않고 "근거 없음"이라고 답합니다.
 
-First, run the development server:
+## 무엇을 해결하나요?
+
+새출발기금 협약은 조항마다 같은 개념을 다른 용어로 쓰거나 문구가 애매해, 담당자마다 해석이 갈리고 운영처·사내 변호사에게 같은 문의가 반복됩니다.
+이 앱은 질문의 단어가 자료와 달라도 뜻이 같은 항목을 찾아, 근거와 함께 일관된 해석을 보여줍니다.
+
+## 주요 기능
+
+- **근거와 함께 답변**: 결론 한 문장 + 설명 + 예외·주의, 문장마다 근거 번호, 500자 이내, [답변 복사]
+- **뜻으로 찾는 검색**: 뜻 지문(임베딩) + 글자 겹침 + 동의어 확장, 같은 주제의 더 최근 자료 우선
+- **정직한 거절**: 자료에 없으면 "근거 없음", 새출발기금과 무관한 질문은 "답변 불가"
+- **해석이 갈리면 표시**: "해석이 애매한 사안"(해석 최대 2개), "용어 불일치" 표시
+- **PDF 추가 자료**: 공개 PDF를 올리면 올린 사람의 브라우저에서만 임시로 근거로 사용 (서버에 저장하지 않음)
+- **안전장치**: 개인정보(주민·계좌번호)·대외비 문구 입력 차단, 하루 질문 100건 제한
+
+## 사용하는 자료
+
+모두 이미 외부에 공개된 자료입니다. 대외비 협약서 원문은 이 저장소와 앱 어디에도 없습니다.
+
+- 새출발기금 홈페이지 FAQ와 공지사항
+- 금융위원회 보도자료 (출처 표시, 저작권정책 확인)
+
+자료는 `data/raw/`에 두고 `npm run build:chunks` → `npm run build:index`로 앱에 반영합니다.
+새 자료는 `npm run fetch:fsc`, `npm run fetch:notices`로 모아 `data/draft/`에 초안으로 만들고, `npm run review:drafts`의 자동 검사와 사람 확인을 거쳐야 반영됩니다.
+
+## 기술 스택
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · OpenAI API (답변 `gpt-4.1`, 임베딩 `text-embedding-3-large`) · unpdf
+
+## 실행 방법
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+# .env 파일에 OPENAI_API_KEY와 OPENAI_MODEL(예: gpt-4.1)을 적습니다 (.env는 저장소에 올라가지 않습니다)
+npm run dev      # http://localhost:3000
+npm run lint
+npm run build
+npm run eval     # 점검 질문 25개 실행
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 문서
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- [PRD.md](PRD.md): 기획서 (문제 정의, 목표, 범위, 보안 검토)
+- [PLAN.md](PLAN.md): 작업 계획과 진행 상황
+- [DESIGN.md](DESIGN.md): 설계서
+- [CLAUDE.md](CLAUDE.md): AI 코딩 도구용 프로젝트 규칙
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 보안 메모
 
-## Learn More
+- API 키는 서버 코드에서만 사용합니다 (`NEXT_PUBLIC_` 변수 없음).
+- 질문·답변·업로드 파일은 저장하거나 기록하지 않습니다. 답변 생성을 위해 질문과 관련 자료는 OpenAI로 전송됩니다.
+- 하루 사용 횟수는 서버 메모리 기준이라 보조 수단입니다. 운영할 때는 OpenAI 월 사용 한도를 반드시 설정하세요.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+이 앱은 공개 자료를 AI가 해석한 결과를 보여줄 뿐이며, 법률 자문이 아닙니다. 해석이 애매하면 운영처 또는 사내 변호사에게 확인하세요.
