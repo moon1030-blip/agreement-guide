@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "build:chunks": "node scripts/build-chunks.mjs",
-    "build:index": "node --env-file=.env scripts/build-index.mjs"
+    "build:index": "node --env-file=.env scripts/build-index.mjs",
+    "eval": "node scripts/run-eval.mjs"
   },
   "dependencies": {
     "next": "16.4.3",
