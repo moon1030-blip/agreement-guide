@@ -6,8 +6,8 @@
 //     "깎아→감면", "독촉→추심"처럼 표현이 달라도 찾는다. 상위 4개를 고른다.
 //  2. 글자 겹침 점수: 질문과 항목에 함께 들어 있는 두 글자 조각의 드문 정도(IDF) 합계.
 //     본문 한 문단에만 있는 단어(예: Q2 본문 속 "수수료")를 뜻 점수가 놓칠 때를 보완한다.
-//     기준을 넘는 항목 중 1개를 다섯 번째 자리에 더한다.
-// 보정(질문 20개) 결과: 정답 항목이 5위 안에 든 질문 15개 중 14개, 날씨·점심 같은 무관 질문은 차단.
+//     기준을 넘는 항목 중 1개를 마지막 자리에 더한다.
+// 보정(질문 20개) 결과: 정답 항목이 후보 5개 안에 든 질문 15개 중 14개, 날씨·점심 같은 무관 질문은 차단.
 // 금융 쪽 무관 질문(주택청약 등)은 통과하므로, 최종 "근거 없음" 판단은 답변 AI(lib/answer.ts)가 맡는다.
 import "server-only";
 import chunks from "@/data/chunks.json";
@@ -17,9 +17,12 @@ import { getOpenAI } from "./openai";
 export type Chunk = (typeof chunks)[number];
 export type RelatedChunk = { chunk: Chunk; score: number };
 
-// PRD 5번: 관련 내용은 최대 5개. 그중 1자리는 글자 겹침으로 찾은 항목에 쓸 수 있다.
-export const MAX_RELATED = 5;
-const MAX_BY_MEANING_WITH_KEYWORD = MAX_RELATED - 1;
+// 답변 AI에게 넘기는 후보는 10개까지 넓게 잡는다. 그중 1자리는 글자 겹침으로 찾은 항목이다.
+// 화면에 보이는 근거는 AI가 실제로 쓴 항목 중 최대 5개로 줄인다 (PRD 5번, lib/answer.ts).
+// 후보를 5개로 좁히면, 여러 이야기가 한 항목에 섞여 뜻 점수가 희석된 항목(예: Q5의 "무담보 10년")이
+// 6~7위로 밀려 AI가 아예 보지 못해 틀린 답이 나왔다 (점검 5번, data/eval/report.md).
+export const MAX_CANDIDATES = 10;
+const MAX_BY_MEANING_WITH_KEYWORD = MAX_CANDIDATES - 1;
 // 뜻 점수가 이보다 낮으면 관련 없는 항목으로 본다 (관련 질문 1위 0.32 이상, 날씨·점심 0.25 미만).
 export const MIN_SCORE = 0.25;
 // 글자 겹침 점수가 이 이상이어야 다섯 번째 자리에 넣는다 (드문 단어 조각 2개 정도가 겹친 수준).
@@ -91,5 +94,5 @@ export async function findRelated(question: string): Promise<RelatedChunk[]> {
     .filter((r) => r.score >= MIN_KEYWORD_SCORE)
     .sort((a, b) => b.score - a.score)[0];
 
-  return byKeyword ? [...topByMeaning, byKeyword] : byMeaning.slice(0, MAX_RELATED);
+  return byKeyword ? [...topByMeaning, byKeyword] : byMeaning.slice(0, MAX_CANDIDATES);
 }

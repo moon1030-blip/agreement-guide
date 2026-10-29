@@ -1,10 +1,10 @@
 {
   "summary": {
-    "runAt": "2026-10-29T00:23:54.733Z",
+    "runAt": "2026-10-29T00:28:20.685Z",
     "total": 25,
     "responseTime": {
       "averageSec": 1.9,
-      "maxSec": 2.7,
+      "maxSec": 2.8,
       "over10sec": 0
     },
     "sourceDisplay": {
@@ -19,7 +19,7 @@
       "questions": 20,
       "answered": 20,
       "wrongNoEvidence": 0,
-      "expectedSourceFound": 19
+      "expectedSourceFound": 20
     },
     "errors": 0
   },
@@ -34,24 +34,27 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.1,
-      "answer": "새출발기금은 소상공인 및 자영업자를 위한 채무조정 지원 제도로, 대출 지원 제도가 아닙니다. 따라서 새출발기금에서 새로 대출을 받는 것은 불가능합니다. 대출 지원이 필요하신 경우에는 소상공인정책자금 등 별도의 대출 지원 정책을 확인하시기 바랍니다.",
+      "seconds": 2.2,
+      "answer": "새출발기금은 신규 대출을 지원하는 제도가 아닙니다. 기존에 보유한 금융기관 채무에 대해 채무조정을 지원하는 프로그램으로, 새출발기금을 통해 새로 대출을 받는 것은 불가능합니다.",
       "ambiguous": false,
       "interpretations": [],
-      "termMismatch": [
-        {
-          "a": "대출",
-          "b": "채무조정"
-        }
-      ],
+      "termMismatch": [],
       "sources": [
+        {
+          "id": "faq-001",
+          "item": "Q1. 소상공인ㆍ자영업자 새출발기금은 어떤 제도인가요?",
+          "source": "새출발기금 홈페이지 FAQ",
+          "baseDate": "2026-10-28",
+          "url": "https://www.newstartfund.or.kr/Faq/List.do",
+          "excerptLength": 23
+        },
         {
           "id": "faq-002",
           "item": "Q2. 새출발기금은 소상공인 대출 지원 제도인가요?",
           "source": "새출발기금 홈페이지 FAQ",
           "baseDate": "2026-10-28",
           "url": "https://www.newstartfund.or.kr/Faq/List.do",
-          "excerptLength": 81
+          "excerptLength": 46
         }
       ],
       "kind": "answerable",
@@ -68,8 +71,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.8,
-      "answer": "새출발기금 채무조정 약정 체결 시에는 수수료가 발생하지 않습니다. 따라서 채무조정 약정 과정에서 별도의 수수료를 납부할 필요가 없습니다.",
+      "seconds": 1.5,
+      "answer": "새출발기금 채무조정 약정 체결 시에는 수수료가 발생하지 않습니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -97,7 +100,7 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.7,
+      "seconds": 1.6,
       "answer": "대출 연체가 50일째인 사업자는 연체일수가 10일 이상 89일 이하에 해당하므로 부실우려차주로 분류됩니다.",
       "ambiguous": false,
       "interpretations": [],
@@ -127,8 +130,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.2,
-      "answer": "네, 새출발기금 채무조정 신청 후에는 채권금융회사가 신청인 명의의 예·적금을 대출금에 상계할 수 있습니다. 따라서 신청 전에 이 점을 확인하시는 것이 중요합니다.",
+      "seconds": 1.7,
+      "answer": "네, 새출발기금 채무조정 신청 후에는 채권금융회사가 신청인 명의의 예·적금을 대출금에 상계할 수 있습니다. 따라서 신청 전에 이 점을 확인하신 후 신청하시는 것이 좋습니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -156,24 +159,32 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.7,
-      "answer": "새출발기금은 부실차주 및 사회취약계층에 대해 거치 및 상환기간을 최대 3년 거치 후 최대 20년까지 연장하여 무담보 대출을 나눠 갚을 수 있도록 지원하고 있습니다.",
+      "seconds": 2.2,
+      "answer": "새출발기금은 무담보 대출에 대해 최대 10년의 상환기간을 지원합니다. 이는 부실차주와 부실우려차주 모두에게 적용되며, 사회취약계층의 경우 거치 및 상환기간을 최대 3년 거치 후 20년까지 연장할 수 있습니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
       "sources": [
+        {
+          "id": "faq-005",
+          "item": "Q5. 다른 채무조정 제도(법원 개인회생, 신용회복위원회)와 다른 점이 있나요?",
+          "source": "새출발기금 홈페이지 FAQ",
+          "baseDate": "2026-10-28",
+          "url": "https://www.newstartfund.or.kr/Faq/List.do",
+          "excerptLength": 200
+        },
         {
           "id": "faq-036",
           "item": "Q36. 취약계층 추가 감면 제도가 있나요?",
           "source": "새출발기금 홈페이지 FAQ",
           "baseDate": "2026-10-28",
           "url": "https://www.newstartfund.or.kr/Faq/List.do",
-          "excerptLength": 76
+          "excerptLength": 200
         }
       ],
       "kind": "answerable",
       "sourcesComplete": true,
-      "expectedSourceFound": false,
+      "expectedSourceFound": true,
       "gotNoEvidence": false
     },
     {
@@ -185,8 +196,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.5,
-      "answer": "새출발기금 협약 가입 채권금융기관 목록은 새출발기금 홈페이지의 '금융기관 조회' 메뉴에서 확인하실 수 있습니다.",
+      "seconds": 1.7,
+      "answer": "새출발기금 협약 가입 채권금융기관 목록은 새출발기금 홈페이지 내 '금융기관 조회' 메뉴에서 확인하실 수 있습니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -215,8 +226,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.1,
-      "answer": "부실차주이면서 담보대출이 있는 경우, 새출발기금 신청은 신용회복위원회 방문 접수(서민금융통합지원센터 전국 50개소)를 통해 하셔야 합니다.",
+      "seconds": 2.3,
+      "answer": "부실차주의 담보대출은 신용회복위원회 방문 접수(서민금융통합지원센터 전국 50개소)를 통해 신청하셔야 합니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -228,6 +239,14 @@
           "baseDate": "2026-10-28",
           "url": "https://www.newstartfund.or.kr/Faq/List.do",
           "excerptLength": 180
+        },
+        {
+          "id": "faq-010",
+          "item": "Q10. 지원 기관과 방법이 어떻게 되나요?",
+          "source": "새출발기금 홈페이지 FAQ",
+          "baseDate": "2026-10-28",
+          "url": "https://www.newstartfund.or.kr/Faq/List.do",
+          "excerptLength": 108
         }
       ],
       "kind": "answerable",
@@ -244,8 +263,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.4,
-      "answer": "새출발기금은 신청 횟수를 1회로 제한하고 있습니다. 다만, 부실우려차주가 약정했던 채무조정이 미납으로 실효되는 경우에는 해당 채권을 새출발기금이 매입하여 채무조정을 지원하며, 최초에 신청하지 않았던 대출도 추가 신청할 수 있습니다.",
+      "seconds": 2.7,
+      "answer": "새출발기금은 고의적, 반복적 채무조정 신청으로 인한 도덕적 해이를 방지하기 위해 신청 횟수를 1회로 제한하고 있습니다. 다만, 부실우려차주가 약정했던 채무조정이 미납으로 실효되는 경우에는 해당 채권을 새출발기금이 매입해 채무조정을 지원하며, 최초에 신청하지 않았던 대출도 추가 신청할 수 있습니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -305,7 +324,7 @@
       "http": 200,
       "status": "answered",
       "seconds": 2.4,
-      "answer": "법원 개인회생 제도를 이용하여 변제 중인 경우에는 새출발기금 지원 신청이 불가합니다. 다만, 개인회생 신청을 취소한 후 새출발기금 신청은 가능합니다. 따라서 현재 개인회생 변제 중이라면 먼저 개인회생 절차를 종료하거나 신청을 취소하셔야 새출발기금 신청이 가능합니다.",
+      "answer": "법원 개인회생 제도로 변제 중인 경우에는 새출발기금 신청이 불가능합니다. 다만, 개인회생 제도를 폐지한 후 새출발기금 지원 대상에 해당하는 채무가 있을 경우 신청할 수 있습니다. 따라서 현재 개인회생 변제 중이라면 먼저 개인회생을 폐지해야 새출발기금 신청이 가능합니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -317,6 +336,14 @@
           "baseDate": "2026-10-28",
           "url": "https://www.newstartfund.or.kr/Faq/List.do",
           "excerptLength": 68
+        },
+        {
+          "id": "faq-014",
+          "item": "Q14. 새출발기금 접수 기간 중 개인회생을 폐지하고 새출발기금을 신청할 수 있나요?",
+          "source": "새출발기금 홈페이지 FAQ",
+          "baseDate": "2026-10-28",
+          "url": "https://www.newstartfund.or.kr/Faq/List.do",
+          "excerptLength": 85
         }
       ],
       "kind": "answerable",
@@ -333,8 +360,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.5,
-      "answer": "한 명의 대표자가 두 개의 개인사업자 사업장을 운영하는 경우, 새출발기금 신청은 1개의 사업자로 1회에 한하여 가능합니다. 즉, 개인사업자 가게 두 곳을 각각 따로 신청할 수는 없습니다.",
+      "seconds": 1.7,
+      "answer": "한명의 대표자가 두 개의 개인사업자 사업장을 운영하는 경우, 새출발기금 신청은 1개의 사업자로 1회에 한하여 가능합니다. 즉, 개인사업자 가게를 두 곳 운영하더라도 각각 따로 신청할 수 없고, 한 번만 신청할 수 있습니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -362,8 +389,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.9,
-      "answer": "착한임대인 세제 혜택용으로 소상공인확인서를 발급받으셨다면, 새출발기금 신청 시 해당 확인서는 사용할 수 없습니다. 소진공에서 발급한 착한임대인 세제해택용 소상공인확인서는 일반적인 소상공인확인서와 다르므로 새출발기금 지원 대상 확인용으로는 인정되지 않습니다.",
+      "seconds": 1.7,
+      "answer": "착한임대인 세제 혜택을 위해 소상공인시장진흥공단에서 발급한 소상공인확인서는 새출발기금 신청 시 사용할 수 없습니다. 이는 일반적인 소상공인확인서와 다르기 때문입니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -391,7 +418,7 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.5,
+      "seconds": 1.8,
       "answer": "매입형 채무조정은 신청일 익월 15일까지 신청 취소가 가능합니다. 이후에는 지원 대상 확정 및 채권매입이 진행되어 취소가 제한됩니다.",
       "ambiguous": false,
       "interpretations": [],
@@ -403,7 +430,7 @@
           "source": "새출발기금 홈페이지 FAQ",
           "baseDate": "2026-10-28",
           "url": "https://www.newstartfund.or.kr/Faq/List.do",
-          "excerptLength": 175
+          "excerptLength": 82
         }
       ],
       "kind": "answerable",
@@ -420,8 +447,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.3,
-      "answer": "폐업한 법인은 새출발기금을 통한 채무조정 지원 대상이 아닙니다. 새출발기금은 개인사업자 또는 법인 소상공인을 지원 대상으로 하나, 2020년 4월 이후 휴·폐업한 개인사업자는 지원 대상이지만 폐업한 법인은 지원 대상에서 제외됩니다.",
+      "seconds": 1.9,
+      "answer": "폐업한 법인은 새출발기금을 통한 채무조정 지원 대상이 아닙니다. 새출발기금은 개인사업자 또는 법인 소상공인을 지원 대상으로 하나, 2020년 4월 이후 휴·폐업한 개인사업자는 지원 대상이나 폐업한 법인은 지원이 불가능합니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -449,8 +476,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.1,
-      "answer": "부동산 임대업은 「소상공인 정책자금 융자 제외대상 업종」에 해당하므로 새출발기금 지원 대상에서 제외됩니다. 따라서 부동산 임대업을 하는 사업자는 새출발기금 지원을 받기 어렵습니다.",
+      "seconds": 2,
+      "answer": "부동산 임대업은 새출발기금의 소상공인 정책자금 융자 제외대상 업종에 해당하므로, 부동산 임대업을 주업종으로 하는 사업자는 새출발기금 지원 대상에서 제외됩니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -479,7 +506,7 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.1,
+      "seconds": 2.4,
       "answer": "담보 채무 12억원, 무담보 채무 3억원인 경우에는 새출발기금 지원 대상이 아닙니다. 새출발기금의 조정한도는 담보채권 10억원, 무담보채권 5억원으로 각각 한도가 정해져 있으며, 담보채무가 12억원으로 한도를 초과하였기 때문에 지원받을 수 없습니다.",
       "ambiguous": false,
       "interpretations": [],
@@ -508,8 +535,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.7,
-      "answer": "새출발기금을 신청하더라도 진행 중인 경매가 바로 멈추지는 않습니다. 새출발기금 협약기관에서는 신청 익일에 추심 및 강제집행, 임의경매 중지를 요청하지만, 이미 매각기일 등이 지정되어 진행 중인 강제집행이나 임의경매는 새출발기금 신청만으로 중지할 수 없으므로 신청자와 금융기관 간 개별 협의가 필요합니다.",
+      "seconds": 2.6,
+      "answer": "새출발기금을 신청하면 협약기관에 한해 신청 익일에 추심 중단 및 담보물에 대한 강제집행·임의경매 중지가 요청됩니다. 그러나 새출발기금 신청 전 이미 매각기일 등이 지정되어 진행 중인 강제집행·임의경매는 신청만으로 중지할 수 없으며, 신청자와 금융기관 간 개별 협의가 필요합니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -520,7 +547,7 @@
           "source": "새출발기금 홈페이지 FAQ",
           "baseDate": "2026-10-28",
           "url": "https://www.newstartfund.or.kr/Faq/List.do",
-          "excerptLength": 96
+          "excerptLength": 129
         }
       ],
       "kind": "answerable",
@@ -537,7 +564,7 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.9,
+      "seconds": 2,
       "answer": "매입형 채무조정은 새출발기금 신청부터 채무조정 약정까지 보통 3~4개월 정도 소요됩니다. 보증부 채권의 경우 대위변제 절차 등으로 추가 3~4개월이 더 걸릴 수 있습니다.",
       "ambiguous": false,
       "interpretations": [],
@@ -566,12 +593,20 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 2.1,
-      "answer": "기초생활수급자인 부실차주는 사회취약계층에 해당하므로, 보유 재산가액을 초과하는 순부채에 대해 90%까지 원금 감면을 받을 수 있습니다. 또한, 상환기간 연장 등 추가 지원도 제공됩니다.",
+      "seconds": 2.8,
+      "answer": "기초생활수급자인 부실차주는 무담보 대출에 대해 보유 재산가액을 초과하는 순부채의 90%까지 원금 감면을 받을 수 있습니다. 이는 사회취약계층에 대한 추가 감면 제도에 따른 지원이며, 담보 대출은 원금 감면 대상이 아닙니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
       "sources": [
+        {
+          "id": "faq-035",
+          "item": "Q35. 원금 감면은 모든 신청자에게 적용되나요?",
+          "source": "새출발기금 홈페이지 FAQ",
+          "baseDate": "2026-10-28",
+          "url": "https://www.newstartfund.or.kr/Faq/List.do",
+          "excerptLength": 104
+        },
         {
           "id": "faq-036",
           "item": "Q36. 취약계층 추가 감면 제도가 있나요?",
@@ -595,8 +630,8 @@
       ],
       "http": 200,
       "status": "answered",
-      "seconds": 1.7,
-      "answer": "약정 후에 숨겨 둔 재산이 발견되면 기존 채무조정은 무효 처리되고, 원금조정 등 채무조정 내용이 취소되며 채권회수 절차가 진행됩니다. 새출발기금은 약정 체결 이후에도 정기적으로 재산 조사를 하여 은닉재산을 조사합니다.",
+      "seconds": 1.6,
+      "answer": "약정 후에 숨겨 둔 재산이 발견되면 기존 채무조정은 무효 처리되고, 원금조정 등 채무조정 내용이 취소되며 채권회수 절차가 진행됩니다.",
       "ambiguous": false,
       "interpretations": [],
       "termMismatch": [],
@@ -622,7 +657,7 @@
       "expectedSourceIds": [],
       "http": 200,
       "status": "no_evidence",
-      "seconds": 1.2,
+      "seconds": 1.4,
       "answer": "공개 자료에서 근거를 찾을 수 없습니다. 운영처 또는 사내 변호사에게 문의하세요.",
       "ambiguous": false,
       "interpretations": [],
@@ -640,7 +675,7 @@
       "expectedSourceIds": [],
       "http": 200,
       "status": "no_evidence",
-      "seconds": 1.4,
+      "seconds": 1.2,
       "answer": "공개 자료에서 근거를 찾을 수 없습니다. 운영처 또는 사내 변호사에게 문의하세요.",
       "ambiguous": false,
       "interpretations": [],
@@ -676,7 +711,7 @@
       "expectedSourceIds": [],
       "http": 200,
       "status": "no_evidence",
-      "seconds": 1.2,
+      "seconds": 1.4,
       "answer": "공개 자료에서 근거를 찾을 수 없습니다. 운영처 또는 사내 변호사에게 문의하세요.",
       "ambiguous": false,
       "interpretations": [],
@@ -694,7 +729,7 @@
       "expectedSourceIds": [],
       "http": 200,
       "status": "no_evidence",
-      "seconds": 1.2,
+      "seconds": 1.8,
       "answer": "공개 자료에서 근거를 찾을 수 없습니다. 운영처 또는 사내 변호사에게 문의하세요.",
       "ambiguous": false,
       "interpretations": [],

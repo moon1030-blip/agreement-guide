@@ -8,6 +8,7 @@ import type { RelatedChunk } from "./retrieve";
 // PRD 5번 규칙의 숫자
 const MAX_ANSWER_LENGTH = 500;
 const MAX_EXCERPT_LENGTH = 200;
+const MAX_SOURCES = 5;
 const MAX_INTERPRETATIONS = 2;
 const MAX_TERM_MISMATCHES = 3;
 
@@ -19,9 +20,11 @@ const SYSTEM_PROMPT = `당신은 새출발기금 업무 담당자를 돕는 "협
 
 반드시 지킬 규칙:
 1. 주어진 항목에 적힌 내용만 근거로 씁니다. 항목에 없는 일반 법률 지식, 추측, 다른 제도 정보로 결론을 내리지 않습니다.
+   - 항목은 관련도 순이 아니며, 질문과 상관없는 항목도 섞여 있습니다. 모든 항목을 끝까지 읽고 질문에 맞는 것만 씁니다.
+   - 여러 항목에 비슷한 수치나 기간이 있으면, 질문의 조건(무담보/담보, 부실/부실우려, 개인/법인 등)에 정확히 맞는 항목의 값을 먼저 말합니다. 특정 대상에게만 적용되는 예외나 추가 지원은 그 대상을 밝혀서 뒤에 덧붙입니다.
 2. 주어진 항목으로 질문에 답할 수 없으면 has_evidence를 false로 하고, 답을 지어내지 않습니다. 질문이 새출발기금과 관계없는 경우도 같습니다.
 3. 답변(answer)은 한국어 존댓말로 ${MAX_ANSWER_LENGTH}자 이내로 씁니다. 담당자가 바로 업무에 쓸 수 있게 핵심 결론을 먼저 씁니다.
-4. 근거로 쓴 항목은 citations에 id와 함께 넣습니다. excerpt에는 그 항목 본문에서 답의 근거가 되는 부분을 고치지 말고 그대로 ${MAX_EXCERPT_LENGTH}자 이내로 옮깁니다.
+4. 근거로 쓴 항목은 citations에 id와 함께 넣습니다(중요한 순서로 최대 ${MAX_SOURCES}개). excerpt에는 그 항목 본문에서 답의 근거가 되는 부분을 고치지 말고 그대로 ${MAX_EXCERPT_LENGTH}자 이내로 옮깁니다.
 5. 근거 문장들이 서로 다른 결론으로 이어지는 등 해석이 둘 이상으로 갈리면 ambiguous를 true로 하고, 가능한 해석을 interpretations에 최대 ${MAX_INTERPRETATIONS}개 씁니다. 이때 answer에는 운영처 또는 사내 변호사에게 문의를 권하는 문장을 넣습니다.
 6. term_mismatch에는 같은 개념이 서로 다른 말로 쓰인 경우를 두 용어로 짝지어 넣습니다(최대 3쌍). 없으면 빈 목록입니다.
    - 질문에 쓰인 말과 자료의 공식 용어가 다를 때: a에 질문의 말, b에 자료의 용어 (예: "독촉" ↔ "추심", "빚 깎기" ↔ "원금 감면")
@@ -158,6 +161,7 @@ export async function generateAnswer(question: string, related: RelatedChunk[]):
   }
 
   if (!output.has_evidence || sources.length === 0) return noEvidenceResponse();
+  sources.splice(MAX_SOURCES);
 
   const interpretations = output.ambiguous
     ? output.interpretations.slice(0, MAX_INTERPRETATIONS).map((text) => truncate(text, MAX_ANSWER_LENGTH))
